@@ -1,0 +1,470 @@
+{
+  "name": "예시 상품 개정",
+  "tasks": [
+    {
+      "id": "T01",
+      "dept": "모든 부서",
+      "name": "상품안 검토 (담보 구성·가입연령 등)",
+      "start": -50,
+      "end": -42,
+      "type": "plan",
+      "deps": [],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T02",
+      "dept": "장기상품",
+      "name": "기획안 (개발 의도·상품 구성)",
+      "start": -50,
+      "end": -49,
+      "type": "plan",
+      "deps": [],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T03",
+      "dept": "장기상품",
+      "name": "위험률 산출",
+      "start": -50,
+      "end": -37,
+      "type": "build",
+      "deps": [
+        "T02"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T04",
+      "dept": "장기상품",
+      "name": "순보험료 산출",
+      "start": -41,
+      "end": -40,
+      "type": "build",
+      "deps": [
+        "T03"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T05",
+      "dept": "장기상품",
+      "name": "영업보험료 산출",
+      "start": -37,
+      "end": -36,
+      "type": "build",
+      "deps": [
+        "T04"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T06",
+      "dept": "장기상품",
+      "name": "재원 산출",
+      "start": -33,
+      "end": -32,
+      "type": "build",
+      "deps": [
+        "T05"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T07",
+      "dept": "장기상품",
+      "name": "기초서류 작성",
+      "start": -43,
+      "end": -33,
+      "type": "build",
+      "deps": [
+        "T03"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T08",
+      "dept": "장기상품",
+      "name": "보험료 재검토",
+      "start": -22,
+      "end": -19,
+      "type": "review",
+      "deps": [
+        "T05"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T09",
+      "dept": "장기상품",
+      "name": "CSM 산출",
+      "start": -18,
+      "end": -15,
+      "type": "review",
+      "deps": [
+        "T08"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T10",
+      "dept": "장기마케팅",
+      "name": "전략적 기대효과 (예상 매출)",
+      "start": -50,
+      "end": -46,
+      "type": "plan",
+      "deps": [
+        "T02"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T11",
+      "dept": "장기마케팅",
+      "name": "전략적 기대효과 재검토",
+      "start": -43,
+      "end": -35,
+      "type": "build",
+      "deps": [
+        "T10"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T12",
+      "dept": "장기마케팅",
+      "name": "PF 계획 수립",
+      "start": -33,
+      "end": -30,
+      "type": "build",
+      "deps": [
+        "T06",
+        "T11"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T13",
+      "dept": "장기마케팅",
+      "name": "전략적 기대효과 재검토 (협의회)",
+      "start": -22,
+      "end": -19,
+      "type": "review",
+      "deps": [
+        "T11"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T14",
+      "dept": "장기마케팅",
+      "name": "PF 계획 재검토",
+      "start": -22,
+      "end": -19,
+      "type": "review",
+      "deps": [
+        "T12"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T15",
+      "dept": "마케팅기획",
+      "name": "수당수수료 산출",
+      "start": -28,
+      "end": -27,
+      "type": "build",
+      "deps": [
+        "T06"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T16",
+      "dept": "마케팅기획",
+      "name": "수당수수료 재검토",
+      "start": -22,
+      "end": -19,
+      "type": "review",
+      "deps": [
+        "T15"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T17",
+      "dept": "장기손사",
+      "name": "보장내용 검토 (면책·지급 적정성)",
+      "start": -47,
+      "end": -41,
+      "type": "plan",
+      "deps": [
+        "T02"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T18",
+      "dept": "장기요율전략",
+      "name": "예상 손해율 산출",
+      "start": -41,
+      "end": -38,
+      "type": "build",
+      "deps": [
+        "T03"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T19",
+      "dept": "장기전략",
+      "name": "인수지침 수립",
+      "start": -31,
+      "end": -30,
+      "type": "build",
+      "deps": [
+        "T18"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T20",
+      "dept": "장기전략",
+      "name": "인수지침 재검토",
+      "start": -22,
+      "end": -21,
+      "type": "review",
+      "deps": [
+        "T19"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T21",
+      "dept": "계리결산",
+      "name": "프라펫 신규 로직 구현",
+      "start": -37,
+      "end": -32,
+      "type": "build",
+      "deps": [
+        "T05"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T22",
+      "dept": "변화관리",
+      "name": "PV 모델링",
+      "start": -37,
+      "end": -36,
+      "type": "build",
+      "deps": [
+        "T05"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T23",
+      "dept": "변화관리",
+      "name": "CF 모델링",
+      "start": -33,
+      "end": -32,
+      "type": "build",
+      "deps": [
+        "T22",
+        "T06",
+        "T12",
+        "T15"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T24",
+      "dept": "변화관리",
+      "name": "하이캡 산출",
+      "start": -25,
+      "end": -23,
+      "type": "build",
+      "deps": [
+        "T23"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T25",
+      "dept": "변화관리",
+      "name": "하이캡 재산출",
+      "start": -19,
+      "end": -15,
+      "type": "review",
+      "deps": [
+        "T24",
+        "T08"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T26",
+      "dept": "변화관리",
+      "name": "하이캡 배수표 산출",
+      "start": -16,
+      "end": -15,
+      "type": "prep",
+      "deps": [
+        "T25"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T27",
+      "dept": "변화관리",
+      "name": "전산 반영 및 테스트",
+      "start": -13,
+      "end": -12,
+      "type": "prep",
+      "deps": [
+        "T26"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T28",
+      "dept": "보험RM",
+      "name": "금리민감배수 산출",
+      "start": -25,
+      "end": -24,
+      "type": "build",
+      "deps": [
+        "T12"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T29",
+      "dept": "보험RM",
+      "name": "금리민감배수 재산출",
+      "start": -19,
+      "end": -16,
+      "type": "review",
+      "deps": [
+        "T28"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T30",
+      "dept": "개인/AM",
+      "name": "판매전략 수립",
+      "start": -11,
+      "end": -7,
+      "type": "prep",
+      "deps": [
+        "T13"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T31",
+      "dept": "개인/AM",
+      "name": "교육",
+      "start": -6,
+      "end": -3,
+      "type": "prep",
+      "deps": [
+        "T30"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T32",
+      "dept": "장기시스템",
+      "name": "시스템 개발",
+      "start": -33,
+      "end": -29,
+      "type": "build",
+      "deps": [
+        "T05",
+        "T25"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T33",
+      "dept": "장기시스템",
+      "name": "시스템 테스트",
+      "start": -16,
+      "end": -15,
+      "type": "prep",
+      "deps": [
+        "T32"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T34",
+      "dept": "장기시스템",
+      "name": "설계 가오픈",
+      "start": -11,
+      "end": -10,
+      "type": "prep",
+      "deps": [
+        "T33"
+      ],
+      "done": false,
+      "events": []
+    },
+    {
+      "id": "T35",
+      "dept": "장기계약관리",
+      "name": "환급금 검증",
+      "start": -16,
+      "end": -15,
+      "type": "prep",
+      "deps": [
+        "T32"
+      ],
+      "done": false,
+      "events": []
+    }
+  ],
+  "kickoffDate": "2026-10-01",
+  "kickoffAuto": false,
+  "holidayText": "",
+  "respectMilestones": false,
+  "notes": [],
+  "initialMessages": [
+    "공개 배포용 예시입니다. 실제 상품 일정이나 채널 대화가 포함되어 있지 않습니다."
+  ]
+}

@@ -1,0 +1,28 @@
+# Channel exports and live schedules stay local.
+hiworks_*
+/server/data/
+/data/
+# Generated/private diagnostic artifacts.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+/docs/evidence/*
+!/docs/evidence/browser-results.json
+!/docs/evidence/revisions/
+/docs/evidence/revisions/*
+!/docs/evidence/revisions/results.json
+!/docs/evidence/revisions/run-metadata.json
+# Local environment and credentials.
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+node_modules/
+*.pem
+*.key
+.DS_Store
+Thumbs.db
+
+# Never publish local comparison originals or device-specific snapshots.
+/baseline/

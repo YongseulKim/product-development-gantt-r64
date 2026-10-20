@@ -1,0 +1,3 @@
+#!/data/data/com.termux/files/usr/bin/sh
+export LD_LIBRARY_PATH=/data/data/com.termux/files/usr/lib
+exec /data/data/com.termux/files/usr/bin/chromedriver "$@"
