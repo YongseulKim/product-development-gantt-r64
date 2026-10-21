@@ -1889,7 +1889,7 @@ document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;
  };
 
  function navigate(url){if(dirty()&&!confirm('저장하지 않은 변경이 있습니다. 변경을 버리고 이동할까요?'))return false;leaving=true;location.href=url;return true}
- async function list(){const data=await request('/api/projects');select.replaceChildren();for(const p of data.projects){const o=document.createElement('option');o.value=p.id;o.textContent=p.name;select.append(o)}select.value=meta.id;if(meta.draft)select.hidden=true}
+ async function list(){const data=await request('/api/projects');select.replaceChildren();for(const p of [...data.projects].sort((a,b)=>a.name.localeCompare(b.name,'ko',{numeric:true,sensitivity:'base'}))){const o=document.createElement('option');o.value=p.id;o.textContent=p.name;select.append(o)}select.value=meta.id;if(meta.draft)select.hidden=true}
  select.onchange=()=>{if(!navigate('/?project='+encodeURIComponent(select.value)))select.value=meta.id;if(meta.draft)select.hidden=true};
  $('projectReload').onclick=()=>navigate('/?project='+encodeURIComponent(meta.id));
  async function renameProject(){
