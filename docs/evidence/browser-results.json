@@ -1,5 +1,5 @@
 {
-  "passed": 19,
+  "passed": 23,
   "checks": [
     "initial chart rendered",
     "table tab",
@@ -9,6 +9,10 @@
     "add custom task",
     "custom name displayed as text",
     "edit task duration",
+    "delete system memo preserves user memo",
+    "undo system memo deletion",
+    "redo system memo deletion",
+    "user memo deletion still works",
     "server save survives refresh",
     "HTML downloaded",
     "download reopens with same tasks",
