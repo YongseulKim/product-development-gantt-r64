@@ -38,6 +38,9 @@ with tempfile.TemporaryDirectory(prefix='gantt-ui-') as temp:
     if js(script):return
     time.sleep(.2)
    raise AssertionError('Timeout: '+script)
+  def approve_preview():
+   if js("return !!document.querySelector('[data-preview-apply]')"):
+    click('[data-preview-apply]');wait("return !document.querySelector('.schedule-preview')")
   def screenshot(name):(E/name).write_bytes(base64.b64decode(http(endpoint+'/screenshot')['value']))
   selected=set(os.environ.get('REV_ONLY','').split(','))-{''}
   results=json.loads((E/'results.json').read_text()) if selected and (E/'results.json').exists() else []
@@ -71,6 +74,7 @@ with tempfile.TemporaryDirectory(prefix='gantt-ui-') as temp:
    js("showTask(arguments[0]);$('memoBody').value=arguments[1];$('memoForm').requestSubmit()",id,text)
   def edit(id,start,duration):
    js("openInline(arguments[0]);$('inlineStart').value=dateAt(arguments[1]);$('inlineDuration').value=String(arguments[2]);$('inlineEditor').requestSubmit()",id,baseOffset+start,duration)
+   approve_preview()
    error=js("return $('inlineError')?.textContent||''");expect(not error,error)
   def complete(id):js("showTask(arguments[0]);$('drawerComplete').click()",id)
   def offset(date):return js('return offsetForDate(arguments[0])-BASE',date)
@@ -116,6 +120,7 @@ with tempfile.TemporaryDirectory(prefix='gantt-ui-') as temp:
   run('REV-07',rev07,'선행 연결은 fixture로 준비. 현행 UI에 연결 편집 입력 없음')
   def meeting(kind,date,confirmed=False):
    js("activeMilestone=arguments[0];drawerTaskId=null;editingId=null;render();$('meetingDate').value=arguments[1];$('meetingDatePicker').click();[...document.querySelectorAll('#dateCalendar [data-date]')].find(b=>b.dataset.date===arguments[1]).click();$('meetingConfirmed').checked=arguments[2];$('meetingSave').click()",kind,date,confirmed)
+   approve_preview()
    expect(not js("return $('meetingError')?.textContent"),js("return $('meetingError')?.textContent"))
   def rev08():
    load();js("for(const t of tasks){if(!t.meetingKind){t.start=BASE-20;t.end=BASE-19}};render()")
@@ -124,6 +129,7 @@ with tempfile.TemporaryDirectory(prefix='gantt-ui-') as temp:
   run('REV-08',rev08)
   def rounds(root,day):
    js('showTask(arguments[0])',root);expect(js("return !!$('addRound')"),'완료 후 차수 추가 버튼 없음');js("$('addRound').click();$('roundStart').value=arguments[0];$('roundEnd').value=arguments[0];$('roundForm').requestSubmit()",day)
+   approve_preview()
    error=js("return $('roundError')?.textContent||''");expect(not error,error)
   def rev09():
    load([task(900,'수익성분석',0,3,done=True,notes=['1차 완료 기록'])]);rounds('T900','2026-10-12');family=js("return roundFamily(tasks.find(t=>t.id==='T900'))");expect(len(family)==2 and not family[-1]['done'] and get('T900')['done'],'재산출 회차/완료 오류');expect(js("return requiredFor('m2').some(t=>t.branchNo===2&&t.roundRootId==='T900')"),'최신 회차 필수 미반영');save_reload();return '실제 차수 폼으로 10/12 재산출 추가, 1차 완료 이력 및 최신 회차 필수 반영'
@@ -158,6 +164,7 @@ with tempfile.TemporaryDirectory(prefix='gantt-ui-') as temp:
   results.append({'id':'REV-19','status':'입력 검토 완료 / 기능 공백','detail':'44개 출처 색인 검토: 그룹 미지정 14개. SRC-20/33 같은 10/2 회의로 연결 가능. SRC-17/38 공동 회의 후보, SRC-44 공통 공유회는 상품 업무로 자동 등록하지 않음.','remaining':'자동 분류·공지 중복제거·공통 공지 전용 모델 없음. 수동 검토 필요'})
   def rev20():
    load([task(900,'위원회 자료X',0,3,type='review'),task(901,'자료X 후행전산',3,5,['T900'],type='prep')]);js("activeMilestone='m3';render();const e=document.querySelector('[data-required-key=\"T900\"]');$('meetingDate').value=dateAt(Math.max(...requiredFor('m3').map(t=>t.end),meetingRecord('m2').start+6)+5);const date=$('meetingDate').value;$('meetingDatePicker').click();document.querySelector('#dateCalendar [data-date=\"'+date+'\"]').click();e.checked=true;e.dispatchEvent(new Event('change'));$('meetingSave').click()")
+   approve_preview()
    expect(not get('T900')['notApplicable'] and 'T900' in get('T901')['deps'],'회의제외가 실제 업무 손상');expect(js("return !requiredFor('m3').some(t=>t.id==='T900')"),'회의제외 미반영')
    js("setNotApplicable('T900',true)");expect(get('T900')['notApplicable'],'업무제외 실패');js("setNotApplicable('T900',false)");expect(not get('T900')['notApplicable'] and 'T900' in get('T901')['deps'],'복원 오류');save_reload();return '실제 필수조건 체크, 업무 제외/복원 및 저장 후 관계 보존'
   run('REV-20',rev20)
@@ -185,6 +192,7 @@ with tempfile.TemporaryDirectory(prefix='gantt-ui-') as temp:
   def drag(selector,dx,dy=0):
    el=call('/element',{'using':'css selector','value':selector});key=el['element-6066-11e4-a52e-4f735466cecf'];js('document.querySelector(arguments[0]).scrollIntoView({block:"center",inline:"center"});window.qaPointerLog=[];if(!window.qaPointerBound){document.addEventListener("pointerdown",e=>window.qaPointerLog.push({type:e.type,target:e.target.outerHTML.slice(0,300),x:e.clientX,y:e.clientY}),true);window.qaPointerBound=true}',selector)
    call('/actions',{'actions':[{'type':'pointer','id':'mouse','parameters':{'pointerType':'mouse'},'actions':[{'type':'pointerMove','duration':100,'origin':{'element-6066-11e4-a52e-4f735466cecf':key},'x':0,'y':0},{'type':'pointerDown','button':0},{'type':'pointerMove','duration':700,'origin':'pointer','x':round(dx),'y':dy},{'type':'pointerUp','button':0}]}]})
+   approve_preview()
    (E/'pointer-last.json').write_text(json.dumps(js('return window.qaPointerLog'),ensure_ascii=False,indent=2))
   def rev22():
    load([task(900,'PC 이동',0,4),task(901,'PC 후행',4,6,['T900']),task(902,'PC 독립',0,4)],kickoff='2026-10-23')

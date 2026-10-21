@@ -1,5 +1,5 @@
 {
-  "passed": 23,
+  "passed": 33,
   "checks": [
     "initial chart rendered",
     "table tab",
@@ -8,6 +8,10 @@
     "redo completion",
     "add custom task",
     "custom name displayed as text",
+    "preview does not mutate tasks or history",
+    "preview escapes custom task names",
+    "cancel preserves schedule and edit form",
+    "preview applies as one undo action",
     "edit task duration",
     "delete system memo preserves user memo",
     "undo system memo deletion",
@@ -23,6 +27,12 @@
     "mobile date cards do not overlap",
     "mobile chat opens",
     "mobile chat closes",
+    "preview lists all propagated tasks",
+    "propagation stays pending before approval",
+    "Escape cancels entire chain",
+    "approval applies downstream dates",
+    "one undo restores whole chain including memos",
+    "redo restores approved chain",
     "no severe browser errors"
   ]
 }
