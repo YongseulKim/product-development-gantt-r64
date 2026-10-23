@@ -31,6 +31,7 @@ with tempfile.TemporaryDirectory(prefix='gantt-ui-') as temp:
   def call(path,data={}):return http(endpoint+path,data)['value']
   def js(script,*args):return call('/execute/sync',{'script':script,'args':list(args)})
   def click(selector):
+   js("document.querySelector(arguments[0]).scrollIntoView({block:'center',inline:'nearest'})",selector)
    el=call('/element',{'using':'css selector','value':selector});call('/element/'+el['element-6066-11e4-a52e-4f735466cecf']+'/click')
   def wait(script,timeout=15):
    end=time.time()+timeout
@@ -42,14 +43,39 @@ with tempfile.TemporaryDirectory(prefix='gantt-ui-') as temp:
   call('/url',{'url':base});wait("return document.querySelector('#projectSelect').options.length>0")
   check('initial chart rendered',js("return document.querySelectorAll('#chart .bar').length>0"));screenshot('desktop-initial.png')
   click('#tableTab');check('table tab',js("return !document.querySelector('#tableView').hidden && document.querySelector('#tableTab').getAttribute('aria-selected')==='true'"));click('#chartTab')
+  rule_checks=js("""const list=structuredClone(tasks),m2=meetingRecord('m2',list);for(const t of list)if(!t.meetingKind){t.start=BASE;t.end=BASE+1}m2.start=BASE+80;m2.end=m2.start+1;const checks=[];const test=(name,ok)=>checks.push({name,ok});
+  const at=n=>dateAt(m2.start+n),error=n=>meetingProblems('m3',at(n),list);
+  test('committee permits exactly five business days',error(5).length===0);test('committee blocks four business days',error(4).length===1&&error(4)[0].includes('5영업일'));
+  test('standard and default committee schedules use five days',meetingDefaultOffset('m3',list)===m2.start+5&&seed.find(t=>t.id===MEETING_IDS.m3).start-seed.find(t=>t.id===MEETING_IDS.m2).start===5);
+  const required=requiredFor('m3',list);required[0].end=m2.start+8;required[1].end=m2.start+10;
+  test('committee gap message precedes task deadline message',error(4).length===1&&error(4)[0].includes('5영업일')&&!error(4)[0].includes(required[1].name));
+  test('only latest required task appears in deadline message',error(5).length===1&&error(5)[0].includes(required[1].name)&&!error(5)[0].includes(required[0].name));
+  let holiday=at(4);while(isWorkday(new Date(holiday+'T12:00:00')))holiday=nextCalendarDay(holiday);
+  test('holiday message takes precedence over all other errors',meetingProblems('m3',holiday,list).join('')==='휴일은 선택할 수 없습니다. 날짜를 조정해 주세요.');
+  for(const kind of ['m2','ready']){const req=requiredFor(kind,list);req[0].end=m2.start+8;req[1].end=m2.start+10;const errors=meetingProblems(kind,at(5),list);test(kind+' shows only latest required task',errors.length===1&&errors[0].includes(req[1].name)&&!errors[0].includes(req[0].name))}
+  for(const type of ['plan','build','review','prep']){const custom={id:'T99090',name:'선택 업무',dept:'검수',type,customTask:true,start:BASE+200,end:BASE+201,deps:[]},next=normalizeTasks([...list,custom]);test(type+' custom task never becomes required',['m2','m3','ready'].every(k=>!requiredFor(k,next).some(t=>t.id===custom.id)));test(type+' custom task does not move milestones',JSON.stringify(applyAddedTask(list,next,custom))===JSON.stringify(next))}
+  const base=structuredClone(list);for(const t of base){t.deps=[];if(!t.meetingKind){t.start=BASE;t.end=BASE+1;t.done=false}}const a=meetingRecord('m2',base),b=meetingRecord('m3',base);a.start=BASE+80;a.end=a.start+1;b.start=a.start+5;b.end=b.start+1;const edited=structuredClone(base);edited.find(t=>t.id==='T05').end=BASE+82;const result=propagateSuccessors(base,edited,['T05']).tasks;test('propagated committee date uses five-day gap',meetingRecord('m3',result).start-meetingRecord('m2',result).start===5);
+  return checks;""")
+  for item in rule_checks:check(item['name'],item['ok'])
+  # Actual disclosure controls: one visible relation and one newest mixed memo.
+  js("window.qaSaved={tasks:structuredClone(tasks),history:undoStack.length};const task=(id,deps,start)=>({id,name:id+' 검수업무',dept:'검수',type:'build',customTask:true,start,end:start+1,deps,events:[]});tasks=normalizeTasks([...tasks,task('T99001',[],BASE+99),task('T99002',[],BASE+99),task('T99003',['T99001','T99002'],BASE+100),task('T99004',['T99003'],BASE+101),task('T99005',['T99003'],BASE+101)]);const t=tasks.find(t=>t.id==='T99003');t.events=[{id:'older',note:'과거 사용자 메모',createdAt:'2026-10-20T00:00:00Z'},{id:'newest',note:'최근 사용자 메모',createdAt:'2026-10-23T00:00:00Z'}];t.scheduleChanges=[{id:'sys',text:'과거 시스템 메모',time:'2026-10-22T00:00:00Z',acknowledged:false}];showTask(t.id)")
+  check('one predecessor and successor visible initially',js("return ['before','after'].every(k=>{const g=document.querySelector('[data-relation='+k+']');return g.querySelectorAll(':scope > .relation-card').length===1&&g.querySelector('.relation-more')&&!g.querySelector('.relation-more').open})"))
+  click('[data-relation="before"] .relation-more > summary');check('remaining predecessor expands',js("return document.querySelector('[data-relation=before] .relation-more').open"))
+  check('newest mixed memo visible without deleting history',js("const e=document.querySelector('.memo-entries');return e.querySelectorAll(':scope > .memo-entry').length===1&&e.querySelector(':scope > .memo-entry').textContent.includes('최근 사용자 메모')&&e.querySelectorAll('.memo-history .memo-entry').length===2&&!e.querySelector('.memo-history').open"))
+  check('bar tooltip contains only newest memo',js("const text=document.querySelector('#chart .bar[data-id=T99003]').title;return text.includes('최근 사용자 메모')&&!text.includes('과거 사용자 메모')&&!text.includes('과거 시스템 메모')"))
+  click('.memo-history > summary');click('[data-edit-memo="older"]');js("document.querySelector('#memoBody').value='수정한 과거 메모'");click('#eventSave')
+  check('older user memo remains editable and visible after save',js("return document.querySelector('.memo-history').open&&tasks.find(t=>t.id==='T99003').events.find(e=>e.id==='older').note==='수정한 과거 메모'"))
+  js("showTask('T99001')");check('empty predecessor list says none',js("return document.querySelector('[data-relation=before] .drawer-empty').textContent==='없음'"))
+  js("showTask('T99004')");check('single relation has no unnecessary expander and empty successors say none',js("return !document.querySelector('[data-relation=before] .relation-more')&&document.querySelector('[data-relation=after] .drawer-empty').textContent==='없음'"))
+  js("tasks=qaSaved.tasks;undoStack.length=qaSaved.history;redoStack.length=0;store.setItem(CACHE,JSON.stringify(tasks));closeTaskDrawer();updateHistoryButtons();delete window.qaSaved")
   # Migrate only identifiable legacy sale-system notes; preserve task/user notes.
   migration=js("""const legacy=structuredClone(tasks),owner=legacy.find(t=>t.id==='T01'),prep=legacy.find(t=>t.id==='T33');delete owner.saleDetails;owner.saleDate=dateAt(BASE+105);owner.saleConfirmed=true;owner.events=[{id:'legacy-user',note:'상품안 사용자 메모'}];owner.scheduleChanges=[{id:'sale-legacy',text:prep.name+' 일정이 변경되었습니다.',time:'2026-10-23T00:00:00Z',acknowledged:true},{id:'sale-explicit',text:'옛 업무 일정이 변경되어 판매개시일이 변경되었습니다.',time:'2026-10-23T00:00:00Z',acknowledged:false},{id:'task-legacy',text:'상품안 검토 자체의 기록',time:'2026-10-23T00:00:00Z',acknowledged:false}];const normalized=normalizeTasks(legacy),root=normalized.find(t=>t.id==='T01'),sale=meetingRecord('ready',normalized);return {taskNotes:root.scheduleChanges.map(n=>n.id),saleNotes:sale.scheduleChanges,events:root.events,saleDate:sale.saleDate,confirmed:sale.saleConfirmed,idempotent:JSON.stringify(normalizeTasks(normalized))===JSON.stringify(normalized),legacyRemoved:!('saleDate' in root)}""")
   check('legacy sale notes separated without losing task notes',migration['taskNotes']==['task-legacy'] and [n['id'] for n in migration['saleNotes']]==['sale-legacy','sale-explicit'])
   check('migration preserves user notes dates confirmation and acknowledgement',migration['events'][0]['note']=='상품안 사용자 메모' and migration['saleDate'] and migration['confirmed'] and migration['saleNotes'][0]['acknowledged'] and migration['legacyRemoved'])
   check('sale migration is idempotent',migration['idempotent'])
-  js("tasks=normalizeTasks([...tasks,{id:'T88001',name:'검수용 판매준비',dept:'검수',type:'prep',customTask:true,start:BASE+100,end:BASE+101,deps:[],done:false}]);meetingRecord('ready').saleDate=dateAt(BASE+105);meetingRecord('ready').saleConfirmed=false;store.setItem(CACHE,JSON.stringify(tasks));render()")
+  js("tasks=normalizeTasks(tasks);const prep=tasks.find(t=>t.id==='T33');prep.name='검수용 판매준비';prep.start=BASE+100;prep.end=BASE+101;prep.deps=[];meetingRecord('ready').saleDate=dateAt(BASE+105);meetingRecord('ready').saleConfirmed=false;store.setItem(CACHE,JSON.stringify(tasks));render()")
   review_before=js("return JSON.stringify(tasks.find(t=>t.id==='T01').scheduleChanges)")
-  js("quickDuration({dataset:{id:'T88001'},value:'2'})")
+  js("quickDuration({dataset:{id:'T33'},value:'2'})")
   check('prep change writes only to sale memo collection',js("return meetingRecord('ready').scheduleChanges.some(n=>n.text.includes('검수용 판매준비'))") and js("return JSON.stringify(tasks.find(t=>t.id==='T01').scheduleChanges)")==review_before)
   js("showTask('T01')")
   check('task drawer hides sale-system notes',js("return !document.querySelector('.memo-entries').textContent.includes('검수용 판매준비')"))
@@ -57,32 +83,32 @@ with tempfile.TemporaryDirectory(prefix='gantt-ui-') as temp:
   check('sale detail displays sale-system notes',js("return document.querySelector('.memo-entries').textContent.includes('검수용 판매준비')"))
   js("document.querySelector('#memoBody').value='판매개시 전용 사용자 메모'");click('#eventSave')
   check('sale user memo stays separate from task user memos',js("return meetingRecord('ready').events.some(e=>e.note==='판매개시 전용 사용자 메모')&&!tasks.find(t=>t.id==='T01').events.some(e=>e.note==='판매개시 전용 사용자 메모')"))
-  sale_note_id=js("return meetingRecord('ready').scheduleChanges.find(n=>n.text.includes('검수용 판매준비')).id")
-  js("document.querySelector('[data-delete-memo=\"'+CSS.escape(arguments[0])+'\"][data-memo-kind=\"system\"]').click()",sale_note_id)
-  check('sale-system memo deletion is isolated',js("return !meetingRecord('ready').scheduleChanges.some(n=>n.id===arguments[0])",sale_note_id) and js("return JSON.stringify(tasks.find(t=>t.id==='T01').scheduleChanges)")==review_before)
-  click('#undoBtn');check('undo restores sale-system memo',js("return meetingRecord('ready').scheduleChanges.some(n=>n.id===arguments[0])",sale_note_id))
+  check('sale-system memos have no delete button',js("return !document.querySelector('[data-delete-memo][data-memo-kind=\"system\"]')&&meetingRecord('ready').scheduleChanges.some(n=>n.text.includes('검수용 판매준비'))"))
   js('closeBreakdown()')
   # Open an actual task via a chart bar; snapshot state only for assertions.
   before=js('return structuredClone(tasks)');tid=before[0]['id']
   js("showTask(arguments[0])",tid);click('#drawerComplete');check('complete task',js('return tasks.find(t=>t.id===arguments[0]).done',tid))
   click('#undoBtn');check('undo completion',js('return !tasks.find(t=>t.id===arguments[0]).done',tid));click('#redoBtn');check('redo completion',js('return tasks.find(t=>t.id===arguments[0]).done',tid));click('#undoBtn')
   js('closeTaskDrawer()');click('#exclusionEditBtn');click('#addTaskBtn');js("document.querySelector('#newName').value='QA <script> & 업무';document.querySelector('#newDept').value='__custom__';document.querySelector('#newDept').dispatchEvent(new Event('change'));document.querySelector('#newDeptCustom').value='검수부서'")
+  required_before=js("return ['m2','m3','ready'].map(k=>[requiredFor(k).map(t=>t.id),meetingDateValue(k)])")
+  js("document.querySelector('#newType').value='review';document.querySelector('#newDuration').value='200';document.querySelector('#newDuration').dispatchEvent(new Event('change'))")
   click('#addTaskForm button[type=submit]')
   try:call('/alert/accept',{})
   except RuntimeError as error:
    if 'no such alert' not in str(error):raise
   check('add custom task',js("return tasks.some(t=>t.name==='QA <script> & 업무')"))
+  check('custom work does not change required tasks or meeting dates',js("return ['m2','m3','ready'].map(k=>[requiredFor(k).map(t=>t.id),meetingDateValue(k)])")==required_before)
   added=js("return structuredClone(tasks.find(t=>t.name==='QA <script> & 업무'))");check('custom name displayed as text',js("return Array.from(document.querySelectorAll('#chart .bar-text')).some(e=>e.textContent.includes('QA <script> & 업무') && !e.querySelector('script'))"))
   js('showTask(arguments[0])',added['id']);click('#drawerEdit');js("const e=document.querySelector('#inlineDuration');e.value='4';e.dispatchEvent(new Event('input'))")
   click('#inlineEditor button[type=submit]');check('edit task duration',js('return tasks.find(t=>t.id===arguments[0]).end-tasks.find(t=>t.id===arguments[0]).start===4',added['id']))
-  # Both memo types may have the same ID; deletion must target only its own collection.
-  js("const t=tasks.find(t=>t.id===arguments[0]);t.events.push({id:'qa-collision',note:'사용자 보존',createdAt:new Date().toISOString()});t.scheduleChanges=[{id:'qa-collision',text:'시스템 삭제 검수',time:new Date().toISOString(),acknowledged:true}];showTask(t.id)",added['id'])
-  click('[data-delete-memo="qa-collision"][data-memo-kind="system"]')
-  check('delete system memo preserves user memo',js("const t=tasks.find(t=>t.id===arguments[0]);return !t.scheduleChanges.some(m=>m.id==='qa-collision')&&t.events.some(m=>m.id==='qa-collision')",added['id']))
-  click('#undoBtn');check('undo system memo deletion',js("return tasks.find(t=>t.id===arguments[0]).scheduleChanges.some(m=>m.id==='qa-collision')",added['id']))
-  click('#redoBtn');check('redo system memo deletion',js("return !tasks.find(t=>t.id===arguments[0]).scheduleChanges.some(m=>m.id==='qa-collision')",added['id']))
-  js('showTask(arguments[0])',added['id']);click('[data-delete-memo="qa-collision"][data-memo-kind="user"]')
-  check('user memo deletion still works',js("return !tasks.find(t=>t.id===arguments[0]).events.some(m=>m.id==='qa-collision')",added['id']))
+  # A same-ID user memo can be deleted without touching the system record.
+  js("const t=tasks.find(t=>t.id===arguments[0]);t.events.push({id:'qa-collision',note:'사용자 보존',createdAt:new Date().toISOString()});t.scheduleChanges=[{id:'qa-collision',text:'시스템 보존 검수',time:new Date().toISOString(),acknowledged:true}];showTask(t.id)",added['id'])
+  check('system memo cannot be edited or deleted',js("return !document.querySelector('.memo-entries > .memo-entry [data-delete-memo]')&&!document.querySelector('.memo-entries > .memo-entry [data-edit-memo]')"))
+  check('latest memo visible and older memos collapsed',js("return document.querySelectorAll('.memo-entries > .memo-entry').length===1&&document.querySelector('.memo-history')&&!document.querySelector('.memo-history').open"))
+  click('.memo-history > summary');click('[data-delete-memo="qa-collision"][data-memo-kind="user"]')
+  check('user memo deletion preserves same-ID system memo',js("const t=tasks.find(t=>t.id===arguments[0]);return t.scheduleChanges.some(m=>m.id==='qa-collision')&&!t.events.some(m=>m.id==='qa-collision')",added['id']))
+  click('#undoBtn');check('undo user memo deletion',js("return tasks.find(t=>t.id===arguments[0]).events.some(m=>m.id==='qa-collision')",added['id']))
+  click('#redoBtn');check('redo user memo deletion preserves system memo',js("const t=tasks.find(t=>t.id===arguments[0]);return !t.events.some(m=>m.id==='qa-collision')&&t.scheduleChanges.some(m=>m.id==='qa-collision')",added['id']))
   js('closeTaskDrawer()');click('#exclusionEditBtn');click('#projectSave');wait("return document.querySelector('#projectStatus')?.textContent.includes('저장 완료') || document.body.innerText.includes('서버 저장 완료')")
   saved=js('return structuredClone(tasks)');call('/refresh',{});wait("return document.querySelector('#projectSelect').options.length>0");(E/'save-comparison.json').write_text(json.dumps({'before':saved,'after':js('return structuredClone(tasks)')},ensure_ascii=False,indent=2));check('server save survives refresh',js('return structuredClone(tasks)')==saved)
   click('#htmlMenuBtn');click('#saveHtmlBtn')

@@ -126,7 +126,7 @@ with tempfile.TemporaryDirectory(prefix='gantt-ui-') as temp:
    js('showTask(arguments[0])',root);expect(js("return !!$('addRound')"),'완료 후 차수 추가 버튼 없음');js("$('addRound').click();$('roundStart').value=arguments[0];$('roundEnd').value=arguments[0];$('roundForm').requestSubmit()",day)
    error=js("return $('roundError')?.textContent||''");expect(not error,error)
   def rev09():
-   load([task(900,'수익성분석',0,3,done=True,notes=['1차 완료 기록'])]);rounds('T900','2026-10-12');family=js("return roundFamily(tasks.find(t=>t.id==='T900'))");expect(len(family)==2 and not family[-1]['done'] and get('T900')['done'],'재산출 회차/완료 오류');expect(js("return requiredFor('m2').some(t=>t.branchNo===2&&t.roundRootId==='T900')"),'최신 회차 필수 미반영');save_reload();return '실제 차수 폼으로 10/12 재산출 추가, 1차 완료 이력 및 최신 회차 필수 반영'
+   load([task(900,'수익성분석',0,3,done=True,notes=['1차 완료 기록'])]);rounds('T900','2026-10-12');family=js("return roundFamily(tasks.find(t=>t.id==='T900'))");expect(len(family)==2 and not family[-1]['done'] and get('T900')['done'],'재산출 회차/완료 오류');expect(js("return !requiredFor('m2').some(t=>t.roundRootId==='T900'||t.id==='T900')"),'추가 업무 차수가 필수 대상으로 편입됨');save_reload();return '실제 차수 폼으로 10/12 재산출 추가, 1차 완료 이력 보존, 직접 추가한 업무의 새 차수는 필수 대상에서 제외'
   run('REV-09',rev09)
   def rev10():
    load([task(900,'레이아웃',0,3,done=True),task(901,'기초서류',0,3,done=True)]);memo('T900','위원회 후 10/14 명칭 수정');rounds('T900','2026-10-14');rounds('T901','2026-10-14');save_reload();expect(len(js('return tasks.filter(t=>t.branchNo===2)'))==2,'수정 회차 누락');expect(get('T900')['done'] and get('T901')['done'],'과거 완료 유실');return '두 업무 수정 회차 미완료 및 기존 완료 보존'
@@ -157,9 +157,9 @@ with tempfile.TemporaryDirectory(prefix='gantt-ui-') as temp:
   run('REV-18',rev18,'미확정 전용 상태 대신 메모+미완료로 표현')
   results.append({'id':'REV-19','status':'입력 검토 완료 / 기능 공백','detail':'44개 출처 색인 검토: 그룹 미지정 14개. SRC-20/33 같은 10/2 회의로 연결 가능. SRC-17/38 공동 회의 후보, SRC-44 공통 공유회는 상품 업무로 자동 등록하지 않음.','remaining':'자동 분류·공지 중복제거·공통 공지 전용 모델 없음. 수동 검토 필요'})
   def rev20():
-   load([task(900,'위원회 자료X',0,3,type='review'),task(901,'자료X 후행전산',3,5,['T900'],type='prep')]);js("activeMilestone='m3';render();const e=document.querySelector('[data-required-key=\"T900\"]');$('meetingDate').value=dateAt(Math.max(...requiredFor('m3').map(t=>t.end),meetingRecord('m2').start+6)+5);const date=$('meetingDate').value;$('meetingDatePicker').click();document.querySelector('#dateCalendar [data-date=\"'+date+'\"]').click();e.checked=true;e.dispatchEvent(new Event('change'));$('meetingSave').click()")
-   expect(not get('T900')['notApplicable'] and 'T900' in get('T901')['deps'],'회의제외가 실제 업무 손상');expect(js("return !requiredFor('m3').some(t=>t.id==='T900')"),'회의제외 미반영')
-   js("setNotApplicable('T900',true)");expect(get('T900')['notApplicable'],'업무제외 실패');js("setNotApplicable('T900',false)");expect(not get('T900')['notApplicable'] and 'T900' in get('T901')['deps'],'복원 오류');save_reload();return '실제 필수조건 체크, 업무 제외/복원 및 저장 후 관계 보존'
+   load([task(901,'자료X 후행전산',3,5,['T08'],type='prep')]);js("const standard=tasks.find(t=>t.id==='T08');standard.start=BASE;standard.end=BASE+3;standard.deps=[];activeMilestone='m3';render();const e=document.querySelector('[data-required-key=\"T08\"]');$('meetingDate').value=dateAt(Math.max(...requiredFor('m3').map(t=>t.end),meetingRecord('m2').start+COMMITTEE_GAP)+5);const date=$('meetingDate').value;$('meetingDatePicker').click();document.querySelector('#dateCalendar [data-date=\"'+date+'\"]').click();e.checked=true;e.dispatchEvent(new Event('change'));$('meetingSave').click()")
+   expect(not get('T08')['notApplicable'] and 'T08' in get('T901')['deps'],'회의제외가 실제 업무 손상');expect(js("return !requiredFor('m3').some(t=>t.id==='T08')"),'회의제외 미반영')
+   js("setNotApplicable('T08',true)");expect(get('T08')['notApplicable'],'업무제외 실패');js("setNotApplicable('T08',false)");expect(not get('T08')['notApplicable'] and 'T08' in get('T901')['deps'],'복원 오류');save_reload();return '실제 필수조건 체크, 업무 제외/복원 및 저장 후 관계 보존'
   run('REV-20',rev20)
   def rev21():
    load([task(900,'충돌 검수',0,3)]);save();first=http(base+'/api/projects/'+js('return window.GANTT_SERVER.id'));newtab=call('/window/new',{'type':'tab'})['handle'];oldhandle=http(endpoint+'/window')['value'];call('/window',{'handle':newtab});call('/url',{'url':base+'/?project='+first['id']});wait("return document.querySelector('#projectSelect').options.length>0")
