@@ -1565,7 +1565,11 @@ function removeRound(original,id){
  return {tasks:normalizeTasks(next),selectedId:previous.id};
 }
 
-function relationTaskName(t,list=tasks){return !t.roundRootId&&roundFamily(t,list).length>1?t.name.replace(/\s*\[1차\]$/,'')+' [1차]':t.name}
+function relationTaskName(t,list=tasks){
+ const number=v=>v.branchNo||Number(v.name.match(/\[(\d+)차\]$/)?.[1])||1,round=number(t),keys=new Set([t.id,t.roundRootId,t.sourceId].filter(Boolean));
+ const multiple=round>1||list.some(v=>v.id!==t.id&&number(v)>1&&[v.id,v.roundRootId,v.sourceId].some(id=>id&&keys.has(id)));
+ return multiple?t.name.replace(/\s*\[\d+차\]$/,'')+' ['+round+'차]':t.name;
+}
 function dependencySelections(t,list){
  const selected=new Map();
  for(const id of t.deps){const base=list.find(v=>v.id===id);if(!base)continue;const edge=effectiveEdges({...t,deps:[id]},list,!!t.done)[0];const task=edge?.task||base;selected.set(task.id,{id:task.id,kind:edge?.kind||relationKind(t,base)})}
@@ -1628,7 +1632,7 @@ function renderTaskDrawer(){
  panel.hidden=!t;if(!t){document.body.classList.remove('drawer-open');return;}
  drawerTaskId=t.id;document.body.classList.add('drawer-open');
  const state=taskState(t),labels={active:'진행 중',done:'완료',late:'지연',planned:'예정'};
- const list=(items,extra='')=>{items=items.filter(v=>!v.meetingKind);const cards=items.map(v=>`<button class="relation-card" type="button" data-task="${v.id}"><span>${esc(v.name)} <b class="relation-state ${taskState(v)}">${labels[taskState(v)]}</b></span><small>${esc(v.dept)} · ${fd(dateAt(v.start))} ~ ${fd(completionAt(v.end))}</small></button>`);if(extra)cards.push(extra);return cards.length?cards[0]+(cards.length>1?`<details class="relation-more compact-disclosure">${disclosureSummary('나머지 '+(cards.length-1)+'개 업무 펼치기 또는 접기')}${cards.slice(1).join('')}</details>`:''):'<p class="drawer-empty">없음</p>'};
+ const list=(items,extra='')=>{items=items.filter(v=>!v.meetingKind);const cards=items.map(v=>`<button class="relation-card" type="button" data-task="${v.id}"><span>${esc(relationTaskName(v))} <b class="relation-state ${taskState(v)}">${labels[taskState(v)]}</b></span><small>${esc(v.dept)} · ${fd(dateAt(v.start))} ~ ${fd(completionAt(v.end))}</small></button>`);if(extra)cards.push(extra);return cards.length?cards[0]+(cards.length>1?`<details class="relation-more compact-disclosure">${disclosureSummary('나머지 '+(cards.length-1)+'개 업무 펼치기 또는 접기')}${cards.slice(1).join('')}</details>`:''):'<p class="drawer-empty">없음</p>'};
  panel.innerHTML=`<div class="drawer-top"><span>업무 상세</span><button type="button" id="drawerClose" aria-label="업무 상세 닫기">×</button></div><div class="drawer-content"><small class="drawer-dept">${esc(t.dept)}</small><h2>${esc(relationTaskName(t))}</h2><dl class="task-properties"><dt>상태</dt><dd><button type="button" id="drawerDone" class="status-chip ${state}">${t.done?'✓ ':''}${labels[state]}</button></dd><dt>일정</dt><dd class="round-schedule">${roundScheduleControls(t)}${roundSchedulePanel(t)}</dd><dt>소요일수</dt><dd>${t.end-t.start} 영업일</dd></dl>${state==='late'?'<p class="drawer-note">예정 종료일이 지났습니다. 실제로 끝났다면 완료로 표시하세요.</p>':''}<div class="drawer-actions"><button type="button" id="drawerComplete">${t.done?'완료 취소':'✓ 완료로 표시'}</button><button type="button" id="drawerEdit">일정 편집</button></div>${scheduleIssues(t).map(message=>`<p class="schedule-warning">${esc(message)}</p>`).join('')}${changeNoticePanel(t)}${editingId===t.id?drawerEditor(t):''}<section class="drawer-relations"><div class="relation-group" data-relation="before">${relationEditor(t,'before')}${list([...new Map(effectiveEdges(t,tasks,!!t.done).map(e=>[e.task.id,e.task])).values()])}</div><div class="relation-group" data-relation="after">${relationEditor(t,'after')}${list(tasks.filter(v=>!v.notApplicable&&effectiveEdges(v,tasks,!!v.done).some(e=>e.task.id===t.id)),requiredFor('ready').some(v=>v.id===t.id)?`<div class="relation-card"><span>판매개시</span><small>${fd(saleDate())}</small></div>`:'')}</div></section>${editingId===t.id?'':eventPanel(t)}</div>`;
  $('drawerClose').onclick=closeTaskDrawer;bindRoundSchedule(t);bindRelationEditors(t);
  const toggle=()=>{recordUndo();t.done=!t.done;if(editingId===t.id&&draft)draft.done=t.done;store.setItem(CACHE,JSON.stringify(tasks));render()};
