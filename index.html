@@ -1326,14 +1326,14 @@ function flowDisplayName(task,members){
 function roundGroups(members){const groups=new Map();for(const t of members){const key=t.roundRootId||t.sourceId||t.id;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(t)}return [...groups.values()].map(g=>g.sort((a,b)=>a.start-b.start||(a.branchNo||1)-(b.branchNo||1)))}
 function packFlowMembers(members){
  if(exclusionEdit)return {placed:members.map((task,level)=>({task,level})),levels:members.length};
- const placed=[],occupied=[];
- for(const family of roundGroups(members).sort((a,b)=>a[0].start-b[0].start||a[0].id.localeCompare(b[0].id))){
-  const first=Math.min(...family.map(t=>t.start)),last=Math.max(...family.map(t=>t.end)),ends=[],local=[];
-  for(const t of family){let level=ends.findIndex(end=>end<=t.start);if(level<0)level=ends.length;ends[level]=t.end;local.push({task:t,level})}
-  let base=0;while(Array.from({length:ends.length},(_,i)=>occupied[base+i]||[]).some(spans=>spans.some(([a,b])=>a<last&&first<b)))base++;
-  for(let i=0;i<ends.length;i++){if(!occupied[base+i])occupied[base+i]=[];occupied[base+i].push([first,last])}
-  placed.push(...local.map(p=>({...p,level:p.level+base})));
- }return {placed,levels:occupied.length};
+ const placed=[],ends=[];
+ // Pack actual task intervals so gaps between rounds remain available to other work.
+ for(const task of [...members].sort((a,b)=>a.start-b.start||a.end-b.end||a.id.localeCompare(b.id))){
+  let level=ends.findIndex(end=>end<=task.start);
+  if(level<0)level=ends.length;
+  ends[level]=task.end;placed.push({task,level});
+ }
+ return {placed,levels:ends.length};
 }
 function groupOverviewRounds(){
  const groups=new Map();for(const row of document.querySelectorAll('#overview .stage-child-row')){const bar=row.querySelector('.stage-task-bar'),task=tasks.find(t=>t.id===bar?.dataset.id);if(!task)continue;const key=[task.type,task.dept,task.roundRootId||task.sourceId||task.id].join('|');if(!groups.has(key))groups.set(key,[]);groups.get(key).push({row,bar,task})}
@@ -1590,7 +1590,7 @@ function renderTaskDrawer(){
  drawerTaskId=t.id;document.body.classList.add('drawer-open');
  const state=taskState(t),labels={active:'진행 중',done:'완료',late:'지연',planned:'예정'};
  const list=(items,extra='')=>{items=items.filter(v=>!v.meetingKind);const cards=items.map(v=>`<button class="relation-card" type="button" data-task="${v.id}"><span>${esc(v.name)} <b class="relation-state ${taskState(v)}">${labels[taskState(v)]}</b></span><small>${esc(v.dept)} · ${fd(dateAt(v.start))} ~ ${fd(completionAt(v.end))}</small></button>`);if(extra)cards.push(extra);return cards.length?cards[0]+(cards.length>1?`<details class="relation-more compact-disclosure">${disclosureSummary('나머지 '+(cards.length-1)+'개 업무 펼치기 또는 접기')}${cards.slice(1).join('')}</details>`:''):'<p class="drawer-empty">없음</p>'};
- panel.innerHTML=`<div class="drawer-top"><span>업무 상세</span><button type="button" id="drawerClose" aria-label="업무 상세 닫기">×</button></div><div class="drawer-content"><small class="drawer-dept">${esc(t.dept)}</small><h2>${esc(t.name)}</h2><dl class="task-properties"><dt>상태</dt><dd><button type="button" id="drawerDone" class="status-chip ${state}">${t.done?'✓ ':''}${labels[state]}</button></dd><dt>일정</dt><dd class="round-schedule">${roundScheduleControls(t)}${roundSchedulePanel(t)}</dd><dt>소요일수</dt><dd>${t.end-t.start} 영업일</dd></dl>${state==='late'?'<p class="drawer-note">예정 종료일이 지났습니다. 실제로 끝났다면 완료로 표시하세요.</p>':''}<div class="drawer-actions"><button type="button" id="drawerComplete">${t.done?'완료 취소':'✓ 완료로 표시'}</button><button type="button" id="drawerEdit">일정 편집</button></div>${scheduleIssues(t).map(message=>`<p class="schedule-warning">${esc(message)}</p>`).join('')}${changeNoticePanel(t)}${editingId===t.id?drawerEditor(t):''}<section class="drawer-relations"><div class="relation-group" data-relation="before"><h3>선행 업무</h3>${list([...new Map(effectiveEdges(t,tasks,!!t.done).map(e=>[e.task.id,e.task])).values()])}</div><div class="relation-group" data-relation="after"><h3>후행 업무</h3>${list(tasks.filter(v=>!v.notApplicable&&effectiveEdges(v,tasks,!!v.done).some(e=>e.task.id===t.id)),requiredFor('ready').some(v=>v.id===t.id)?`<div class="relation-card"><span>판매개시</span><small>${fd(saleDate())}</small></div>`:'')}</div></section>${editingId===t.id?'':eventPanel(t)}</div>`;
+ panel.innerHTML=`<div class="drawer-top"><span>업무 상세</span><button type="button" id="drawerClose" aria-label="업무 상세 닫기">×</button></div><div class="drawer-content"><small class="drawer-dept">${esc(t.dept)}</small><h2>${esc(!t.roundRootId&&roundFamily(t).length>1?t.name.replace(/\s*\[1차\]$/,'')+' [1차]':t.name)}</h2><dl class="task-properties"><dt>상태</dt><dd><button type="button" id="drawerDone" class="status-chip ${state}">${t.done?'✓ ':''}${labels[state]}</button></dd><dt>일정</dt><dd class="round-schedule">${roundScheduleControls(t)}${roundSchedulePanel(t)}</dd><dt>소요일수</dt><dd>${t.end-t.start} 영업일</dd></dl>${state==='late'?'<p class="drawer-note">예정 종료일이 지났습니다. 실제로 끝났다면 완료로 표시하세요.</p>':''}<div class="drawer-actions"><button type="button" id="drawerComplete">${t.done?'완료 취소':'✓ 완료로 표시'}</button><button type="button" id="drawerEdit">일정 편집</button></div>${scheduleIssues(t).map(message=>`<p class="schedule-warning">${esc(message)}</p>`).join('')}${changeNoticePanel(t)}${editingId===t.id?drawerEditor(t):''}<section class="drawer-relations"><div class="relation-group" data-relation="before"><h3>선행 업무</h3>${list([...new Map(effectiveEdges(t,tasks,!!t.done).map(e=>[e.task.id,e.task])).values()])}</div><div class="relation-group" data-relation="after"><h3>후행 업무</h3>${list(tasks.filter(v=>!v.notApplicable&&effectiveEdges(v,tasks,!!v.done).some(e=>e.task.id===t.id)),requiredFor('ready').some(v=>v.id===t.id)?`<div class="relation-card"><span>판매개시</span><small>${fd(saleDate())}</small></div>`:'')}</div></section>${editingId===t.id?'':eventPanel(t)}</div>`;
  $('drawerClose').onclick=closeTaskDrawer;bindRoundSchedule(t);
  const toggle=()=>{recordUndo();t.done=!t.done;if(editingId===t.id&&draft)draft.done=t.done;store.setItem(CACHE,JSON.stringify(tasks));render()};
  $('drawerDone').onclick=toggle;$('drawerComplete').onclick=toggle;if($('ackScheduleChanges'))$('ackScheduleChanges').onclick=()=>{recordUndo();t.scheduleChanges=(t.scheduleChanges||[]).map(n=>({...n,acknowledged:true}));store.setItem(CACHE,JSON.stringify(tasks));render()};
