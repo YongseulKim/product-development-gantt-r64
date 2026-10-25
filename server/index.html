@@ -1591,7 +1591,9 @@ function updateTaskRelations(original,id,side,selectedIds){
  }else for(const target of next){if(target.id===id||target.meetingKind)continue;const entries=dependencySelections(original.find(t=>t.id===target.id),original),linked=entries.some(e=>e.id===id);if(linked!==selected.has(target.id))assign(target,selected.has(target.id)?[...entries,{id,kind:'FS'}]:entries.filter(e=>e.id!==id))}
  const result=normalizeTasks(next);validateRelationGraph(result);return result;
 }
+function canEditTaskRelations(t){return !!(t.independentRound||(t.branchNo||1)>=2||t.customTask)}
 function relationEditor(t,side){
+ if(!canEditTaskRelations(t))return `<div class="relation-heading"><h3>${side==='before'?'선행 업무':'후행 업무'}</h3></div>`;
  const selected=new Set(relationSelectionIds(t,side)),options=tasks.filter(v=>v.id!==t.id&&!v.meetingKind).sort((a,b)=>relationTaskName(a).localeCompare(relationTaskName(b),'ko',{numeric:true}));
  return `<div class="relation-heading"><h3>${side==='before'?'선행 업무':'후행 업무'}</h3><button type="button" data-relation-edit="${side}" aria-expanded="false" aria-controls="relationForm-${side}">편집</button></div><form class="relation-editor" id="relationForm-${side}" data-relation-side="${side}" hidden><input type="search" class="relation-search" aria-label="${side==='before'?'선행':'후행'} 업무 검색" placeholder="업무명 검색"><div class="relation-options">${options.map(v=>`<label data-relation-option><input type="checkbox" value="${esc(v.id)}" ${selected.has(v.id)?'checked':''}><span class="relation-option-text"><span class="relation-option-name" title="${esc(relationTaskName(v))}">${esc(relationTaskName(v))}</span><small>${esc(v.dept)}${v.notApplicable?' · 해당없음':''}</small></span></label>`).join('')}</div><p class="inline-error" role="alert"></p><div class="relation-actions"><button type="button" data-relation-cancel>취소</button><button type="submit">저장</button></div></form>`;
 }
