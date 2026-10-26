@@ -26,3 +26,11 @@ Thumbs.db
 
 # Never publish local comparison originals or device-specific snapshots.
 /baseline/
+
+# Windows packaging outputs and manager runtime files.
+/build/
+/dist/
+*.spec
+/server/logs/
+/server/.gantt-server.lock
+/server/manager-*.log

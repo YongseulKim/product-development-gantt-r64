@@ -56,3 +56,9 @@ python tests/browser_smoke.py
 - tests/revision_scenarios.py의 일부 단계는 DOM/fixture 준비를 사용하며 모든 사용자 입력을 물리적 키보드·마우스로 재현한 것은 아닙니다.
 
 공개 저장소의 변경은 원래의 로컬 내부 자료 사본에 자동 반영되지 않습니다. 수정할 때 어떤 사본인지 확인하세요.
+
+## Windows 서버 관리자
+
+Python 설치 없이 실행하는 단일 EXE 빌드를 제공합니다. 한글 로그, 시작·중지·재시작, 접속 중인 IP, 응답 확인, 알림 영역 백그라운드 실행을 지원합니다. 기존 서버 폴더에 EXE를 넣으면 기존 HTML과 데이터를 사용합니다. [사용 방법](docs/SERVER_MANAGER.txt)을 참고하세요.
+
+GitHub Actions의 `Build Windows server manager`에서 Windows x64 실행 파일을 만들고 실제 EXE를 검증합니다. 결과는 해당 실행의 `GanttServerManager-Windows-x64` 아티팩트에서 받을 수 있습니다.
