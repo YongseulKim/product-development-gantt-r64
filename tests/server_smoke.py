@@ -47,8 +47,15 @@ with tempfile.TemporaryDirectory(prefix='gantt-qa-') as temp:
         status,_=req(path);check('deleted project inaccessible',status==404)
         status,_=req(path,{'version':deleted['version'],'state':state});check('deleted project cannot be saved',status==404)
         check('soft delete retained',any(p['id']==new['id'] and p.get('deletedAt') for p in m.read_db()['projects']))
-        for _ in range(53):m.write_db(m.read_db())
-        check('backup retention 50',len(list((m.DATA/'project_backups').glob('*.json')))==50)
+        clock=m.datetime
+        class FrozenClock:
+            @staticmethod
+            def now():return clock(2026,10,26,12,0,0)
+        m.datetime=FrozenClock
+        try:
+            for _ in range(53):m.write_db(m.read_db())
+        finally:m.datetime=clock
+        check('backup retention 50 with identical timestamps',len(list((m.DATA/'project_backups').glob('*.json')))==50)
         check('stored notes preserved',next(p for p in m.read_db()['projects'] if p['id']==new['id'])['state']['notes']==state['notes'])
         print(json.dumps({'passed':len(checks),'checks':checks},ensure_ascii=False,indent=2))
     finally:http.shutdown();http.server_close()

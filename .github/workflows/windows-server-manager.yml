@@ -11,6 +11,8 @@ on:
       - '.github/workflows/windows-server-manager.yml'
 permissions:
   contents: read
+env:
+  PYTHONUTF8: "1"
 jobs:
   windows:
     runs-on: windows-2022
@@ -23,10 +25,10 @@ jobs:
           architecture: 'x64'
       - name: Install build dependencies
         run: python -m pip install -r server/requirements-build.txt
-      - name: Check existing server and source manager
-        run: |
-          python tests/server_smoke.py
-          python tests/manager_smoke.py
+      - name: Check existing server
+        run: python tests/server_smoke.py
+      - name: Check source manager
+        run: python tests/manager_smoke.py
       - name: Build standalone Windows EXE
         run: python server/build_windows.py
       - name: Run packaged GUI, tray and server without Python on PATH

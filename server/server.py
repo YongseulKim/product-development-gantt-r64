@@ -16,7 +16,7 @@ def write_db(db):
     tmp.write_text(json.dumps(db,ensure_ascii=False,indent=2),encoding='utf-8')
     if DB.exists():
         backups=DATA/'project_backups';backups.mkdir(exist_ok=True)
-        shutil.copy2(DB,backups/(datetime.now().strftime('%Y%m%d_%H%M%S_%f')+'.json'))
+        shutil.copy2(DB,backups/(datetime.now().strftime('%Y%m%d_%H%M%S_%f')+'_'+uuid.uuid4().hex+'.json'))
         for p in sorted(backups.glob('*.json'))[:-50]:p.unlink()
     os.replace(tmp,DB)
 def new_record(state):

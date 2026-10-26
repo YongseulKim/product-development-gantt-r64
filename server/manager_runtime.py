@@ -111,8 +111,7 @@ def worker(folder, port, event_path, stop_path):
     try:
         lock.acquire(); ensure_assets(folder)
         bundled = resources() / ('backend_server.py' if getattr(sys, 'frozen', False) else 'server.py')
-        source = Path(folder) / 'server.py'
-        if not source.exists(): source = bundled
+        source = bundled
         spec = importlib.util.spec_from_file_location('gantt_backend', source)
         backend = importlib.util.module_from_spec(spec); spec.loader.exec_module(backend)
         backend.ROOT = Path(folder); backend.DATA = Path(folder) / 'data'; backend.DB = backend.DATA / 'projects.json'
