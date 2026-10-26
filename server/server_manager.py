@@ -200,6 +200,7 @@ def self_test(folder, report):
     try:
         app.start(); wait(lambda: app.state == 'running')
         check('Python 설치 경로 없이 서버 시작', app.controller.process.poll() is None)
+        check('서버도 동일한 내장 실행파일로 시작', Path(app.controller.process.args[0]).resolve()==Path(sys.executable).resolve())
         check('초기 파일과 데이터 자동 준비', (Path(folder)/'index.html').exists() and (Path(folder)/'data/projects.json').exists())
         check('브라우저 화면에 접속자 신호 포함', b'gantt-manager-presence' in get('/'))
         get('/api/server/heartbeat?tab=smoke-a'); get('/api/server/heartbeat?tab=smoke-b'); wait(lambda: len(app.client_tree.get_children()) == 1)
