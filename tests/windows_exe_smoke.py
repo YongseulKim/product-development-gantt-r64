@@ -4,7 +4,7 @@ import json,os,subprocess,tempfile
 ROOT=Path(__file__).resolve().parents[1];exe=ROOT/'dist/GanttServerManager.exe';report=ROOT/'dist/exe-self-test.json'
 with tempfile.TemporaryDirectory(prefix='gantt-exe-') as temp:
  env={k:v for k,v in os.environ.items() if k not in ('PYTHONPATH','PYTHONHOME','VIRTUAL_ENV')}
- env['PATH']=str(Path(env['SystemRoot'])/'System32')
+ env['PATH']=str(Path(os.environ.get('SystemRoot',r'C:\Windows'))/'System32')
  command=[str(exe),'--self-test','--data-dir',temp,'--test-report',str(report)]
  process=subprocess.Popen(command,env=env,cwd=temp)
  try:code=process.wait(timeout=150)
